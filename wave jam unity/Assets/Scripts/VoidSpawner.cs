@@ -14,28 +14,43 @@ public class VoidSpawner : MonoBehaviour
     [Header("Wave Settings")]
     public int currentWave = 1;
     public float babySpawnChance = 0.5f; // 50% chance for baby1 spawn
+    public float waveTimer = 30f;  //wave duration in seconds
 
     private float spawnTimer = 0f;
     private int spheresSpawnedThisWave = 0;
+    private float currentWaveTimeRemaining;
+
+
+    void Start()
+    {
+        currentWaveTimeRemaining = waveTimer;
+    }
 
     void Update()
     {
+        // Countdown wave timer
+        currentWaveTimeRemaining -= Time.deltaTime;
+
+        // Update UI
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.UpdateWaveTimer(currentWaveTimeRemaining);
+        }
+
+        // Check if wave time is up
+        if (currentWaveTimeRemaining <= 0)
+        {
+            EndWave();
+            return;
+        }
+
         spawnTimer += Time.deltaTime;
 
-        // Check to see if it is right time to spawn
-        if (spawnTimer >= spawnInterval && spheresSpawnedThisWave < spheresPerWave )
+        if (spawnTimer >= spawnInterval && spheresSpawnedThisWave < spheresPerWave)
         {
             SpawnSphere();
             spawnTimer = 0f;
             spheresSpawnedThisWave++;
-
-
-        }
-
-        // A check to see if the wave is "complete"
-        if (spheresSpawnedThisWave >= spheresPerWave)
-        {
-            // Add logic for how waves end?? Time limit? Not sure yet.
         }
     }
 
@@ -118,16 +133,33 @@ public class VoidSpawner : MonoBehaviour
 
     }
 
+    void EndWave()
+    {
+        SphereController[] remainingSpheres = FindObjectsByType<SphereController>(FindObjectsSortMode.None);
+        foreach (SphereController sphere in remainingSpheres)
+        {
+            Destroy(sphere.gameObject);
+        }
+
+        StartNextWave();
+    }
+
     public void StartNextWave()
     {
         currentWave++;
         spheresSpawnedThisWave = 0;
+        currentWaveTimeRemaining = waveTimer;
 
         // Make waves harder
         spawnInterval = Mathf.Max(0.5f, spawnInterval - 0.1f); // Spawn faster
-        spheresPerWave += 2; // More spheres per wave
+        spheresPerWave += 5; // More spheres per wave
 
         Debug.Log("Wave " + currentWave + " started!");
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.UpdateWaveDisplay(currentWave);
+        }
     }
 }
 

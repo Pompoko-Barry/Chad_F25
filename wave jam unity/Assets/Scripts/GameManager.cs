@@ -9,6 +9,7 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI scoreText;
     public TextMeshProUGUI livesText;
     public TextMeshProUGUI waveText;
+    public TextMeshProUGUI timerText;
 
     [Header("Game Settings")]
     public int score = 0;
@@ -17,11 +18,11 @@ public class GameManager : MonoBehaviour
     [Header("Scoring")]
     public int correctSortPoints = 10;
     public int wrongSortPenalty = 5;
-    public int edgePenalty = 10;
+    public int edgePenalty = 3;
 
     private VoidSpawner spawner;
 
-    private void Awake()
+    void Awake()
     {
         if (Instance == null)
             Instance = this;
@@ -63,10 +64,13 @@ public class GameManager : MonoBehaviour
     {
         // Penalty for letting sphere reach edge
         score -= edgePenalty;
-        if (wasBaby)
-        {
-            lives--; // Extra penalty for letting baby escape?? How should players lose? Penalites??
-        }
+
+        // Lose a life if ANNNY ANY sphere reaches edge
+        lives--;
+        //if (wasBaby)
+        //{
+        //    lives--; // Extra penalty for letting baby escape?? How should players lose? Penalites??
+        //}
 
         if (score < 0) score = 0;
 
@@ -76,6 +80,12 @@ public class GameManager : MonoBehaviour
         {
             GameOver();
         }
+    }
+
+    public void UpdateWaveDisplay(int wave)
+    {
+        if (waveText != null)
+            waveText.text = "Wave: " + wave;
     }
 
     void UpdateUI()
@@ -88,6 +98,26 @@ public class GameManager : MonoBehaviour
 
         if (waveText != null && spawner != null)
             waveText.text = "Wave: " + spawner.currentWave;
+    }
+
+    public void UpdateWaveTimer(float timeRemaining)
+    {
+        if (timerText != null)
+        {
+            int minutes = Mathf.FloorToInt(timeRemaining / 30f);
+            int seconds = Mathf.FloorToInt(timeRemaining % 30f);
+            timerText.text = string.Format("Time: {0:00}:{1:00}", minutes, seconds);
+
+            // Change color when time is running out
+            if (timeRemaining < 10f)
+            {
+                timerText.color = Color.red;
+            }
+            else
+            {
+                timerText.color = Color.white;
+            }
+        }
     }
 
     void GameOver()

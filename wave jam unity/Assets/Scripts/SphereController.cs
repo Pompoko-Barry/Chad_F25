@@ -9,11 +9,15 @@ public class SphereController : MonoBehaviour
     public float rollForce = 5f;
     public Vector3 voidPosition; // Where the void is
 
+    [Header("Rotation Settings")]
+    public float rotationSpeed = 100f;
+
     private Rigidbody rb;
     private bool hasBeenLaunched = false;
     private bool isBeingDragged = false;
     private Vector3 dragOffset;
     private Camera mainCamera;
+    private Quaternion dragStartRotation;
 
 
     void Start()
@@ -47,45 +51,101 @@ public class SphereController : MonoBehaviour
     {
         isBeingDragged = true;
 
-        //// This will stop physics while sphere is being dragged by mouse
-        //if (rb != null)
-        //{
-        //    rb.linearVelocity = Vector3.zero;
-        //    rb.angularVelocity = Vector3.zero;
-        //    rb.useGravity = false;
-        //    rb.isKinematic = true;
-            
-        //}
+        // Store the current rotation
+        dragStartRotation = transform.rotation;
 
-        // Calculate the offset from mouse to sphere : wat is offset ?
+        // Stop physics while dragging
+        if (rb != null)
+        {
+            // Only set velocities if NOT kinematic
+            if (!rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
+            // Then make kinematic and disable gravity
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
+
+        //Calculate the offset from mouse to sphere: wat is offset ?
         Vector3 mousePos = GetMouseWorldPosition();
         dragOffset = transform.position - mousePos;
     }
 
-    void OnMouseDrag()
+    void Update()
     {
+        // Check if dragging and mouse button is released
+        if (isBeingDragged && Input.GetMouseButtonUp(0))
+        {
+            ReleaseSphere();
+        }
+
+        // Handle dragging movement
         if (isBeingDragged)
         {
             Vector3 mousePos = GetMouseWorldPosition();
             transform.position = mousePos + dragOffset;
+
+            // Rotate with scroll
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (scroll != 0f)
+            {
+                transform.Rotate(Vector3.up, scroll * rotationSpeed, Space.World);
+            }
         }
     }
 
-    void OnMouseUp()
+    void ReleaseSphere()
     {
         // Stop dragging
         isBeingDragged = false;
 
-        // Turn on physics again
+        // Re-enable physics
         if (rb != null)
         {
+            rb.isKinematic = false;
             rb.useGravity = true;
-            rb.isKinematic = true;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
-
-        // How/where do I add the logic for checking if the sphere got dropped on the right spot?
-        // Also, what happens if the sphere gets dropped somewhere there is no sorting zone?? (a blank spot on the playable area)
     }
+
+    //void OnMouseDrag()
+    //{
+    //    if (isBeingDragged)
+    //    {
+    //        Vector3 mousePos = GetMouseWorldPosition();
+    //        transform.position = mousePos + dragOffset;
+
+    //        // To rotate sphere with scroll wheel
+    //        float scroll = Input.GetAxis("Mouse ScrollWheel");
+    //        if (scroll != 0f)
+    //        {
+    //            transform.Rotate(Vector3.up, scroll * rotationSpeed, Space.World); 
+    //        }
+    //    }
+    //}
+
+    //void OnMouseUp()
+    //{
+    //    // Stop dragging
+    //    isBeingDragged = false;
+
+    //    // Turn on physics again so that physics and gravity will cause the sphere to drop
+    //    if (rb != null)
+    //    {
+    //        rb.useGravity = true;
+    //        rb.isKinematic = true;
+
+    //        rb.linearVelocity = Vector3.zero;
+    //        rb.angularVelocity = Vector3.zero;
+    //    }
+
+    //    // How/where do I add the logic for checking if the sphere got dropped on the right spot?
+    //    // Also, what happens if the sphere gets dropped somewhere there is no sorting zone?? (a blank spot on the playable area)
+    //}
 
     Vector3 GetMouseWorldPosition()
     {
