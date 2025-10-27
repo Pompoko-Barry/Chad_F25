@@ -19,6 +19,9 @@ public class SphereController : MonoBehaviour
     private Camera mainCamera;
     private Quaternion dragStartRotation;
 
+    public AudioClip clickSound;
+    private AudioSource audioSource;
+
 
     void Start()
     {
@@ -27,6 +30,13 @@ public class SphereController : MonoBehaviour
 
         // Launch the sphere away from the void after a short delay
         Invoke("LaunchFromVoid", 0.2f);
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
     }
 
 
@@ -72,6 +82,12 @@ public class SphereController : MonoBehaviour
         //Calculate the offset from mouse to sphere: wat is offset ?
         Vector3 mousePos = GetMouseWorldPosition();
         dragOffset = transform.position - mousePos;
+
+        // Play click sound
+        if (clickSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clickSound);
+        }
     }
 
     void Update()
@@ -92,7 +108,7 @@ public class SphereController : MonoBehaviour
             float scroll = Input.GetAxis("Mouse ScrollWheel");
             if (scroll != 0f)
             {
-                transform.Rotate(Vector3.up, scroll * rotationSpeed, Space.World);
+                transform.Rotate(Vector3.right, scroll * rotationSpeed, Space.World);
             }
         }
     }
@@ -210,6 +226,11 @@ public class SphereController : MonoBehaviour
             }
             Destroy(gameObject);
         }
+    }
+
+    public bool IsBeingDragged()
+    {
+        return isBeingDragged;
     }
  
 }

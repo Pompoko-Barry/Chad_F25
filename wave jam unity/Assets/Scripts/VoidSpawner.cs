@@ -7,6 +7,15 @@ public class VoidSpawner : MonoBehaviour
     public Material[] babyMaterials;
     public Material[] burritoMaterials;
 
+
+    [Header("Material Progression")]
+    public int materialsPerWave = 2;
+    public int newMaterialEveryXWaves = 2;
+
+    private int currentBabyMaterialCount = 2;
+    private int currentBurritoMaterialCount = 2;
+
+
     [Header("Spawn Timing")]
     public float spawnInterval = 2f; // Time inbetween spawns
     public int spheresPerWave = 10;
@@ -15,10 +24,12 @@ public class VoidSpawner : MonoBehaviour
     public int currentWave = 1;
     public float babySpawnChance = 0.5f; // 50% chance for baby1 spawn
     public float waveTimer = 30f;  //wave duration in seconds
+    public float wavePauseTime = 3f;  // To pause in between waves
 
     private float spawnTimer = 0f;
     private int spheresSpawnedThisWave = 0;
     private float currentWaveTimeRemaining;
+    private bool isWavePaused = false;
 
 
     void Start()
@@ -28,6 +39,10 @@ public class VoidSpawner : MonoBehaviour
 
     void Update()
     {
+
+        if (isWavePaused)
+            return;  // All gameplay is paused during wave transition period
+
         // Countdown wave timer
         currentWaveTimeRemaining -= Time.deltaTime;
 
@@ -57,31 +72,30 @@ public class VoidSpawner : MonoBehaviour
     void SpawnSphere()
     {
         Vector3 spawnPos = transform.position + new Vector3(
-            Random.Range(-0.5f, 0.5f),
-            1f,
-            Random.Range(-0.5f, 0.5f)
-            );
+         Random.Range(-0.5f, 0.5f),
+         1f,
+         Random.Range(-0.5f, 0.5f)
+     );
 
         GameObject sphere = Instantiate(spherePrefab, spawnPos, Random.rotation);
-
-        // This will determine type of sphere
         bool isBaby = Random.value < babySpawnChance;
 
         Renderer sphereRenderer = sphere.GetComponent<Renderer>();
         SphereController controller = sphere.GetComponent<SphereController>();
 
-        // Pick a random material from the array
         if (sphereRenderer != null)
         {
             if (isBaby && babyMaterials.Length > 0)
             {
-                Material randomBabyMat = babyMaterials[Random.Range(0, babyMaterials.Length)];
+                // Only pick from unlocked materials
+                int maxIndex = Mathf.Min(currentBabyMaterialCount, babyMaterials.Length);
+                Material randomBabyMat = babyMaterials[Random.Range(0, maxIndex)];
                 sphereRenderer.material = randomBabyMat;
             }
-
             else if (!isBaby && burritoMaterials.Length > 0)
             {
-                Material randomBurritoMat = burritoMaterials[Random.Range(0, burritoMaterials.Length)];
+                int maxIndex = Mathf.Min(currentBurritoMaterialCount, burritoMaterials.Length);
+                Material randomBurritoMat = burritoMaterials[Random.Range(0, maxIndex)];
                 sphereRenderer.material = randomBurritoMat;
             }
         }
@@ -93,62 +107,42 @@ public class VoidSpawner : MonoBehaviour
         }
 
         Debug.Log("Spawned " + (isBaby ? "Baby" : "Burrito"));
-        //// Spawn at the position of void/hole but with a slight random offset
-        //Vector3 spawnPos = transform.position + new Vector3(
-        //    Random.Range (-0.5f, 0.5f),
-        //    1f, // This will cause it to spawn slightly above
-        //    Random.Range(-0.5f, 0.5f)
-        //    );
-
-        //// Create the sphere
-        //GameObject sphere = Instantiate(spherePrefab, spawnPos, Random.rotation);
-
-        //// Determine if baby or burrito
-        //bool isBaby = Random.value < baby1SpawnChance;
-
-        //// Get the sphere's components
-        //Renderer sphereRenderer = sphere.GetComponent<Renderer>();
-        //SphereController controller = sphere.GetComponent<SphereController>();
-
-        //// Assign material and type
-        //if (sphereRenderer != null)
-        //{
-        //    Material materialToUse = isBaby ? baby1Material : burrito1Material;
-        //    sphereRenderer.material = materialToUse;
-        //    Debug.Log("Assigned material: " + (materialToUse != null ? materialToUse.name : "NULL"));
-        //}
-        //else
-        //{
-        //    Debug.LogWarning("No Renderer found on sphere!");
-        //}
-
-
-        //if (controller != null)
-        //{
-        //    controller.isBaby = isBaby;
-        //    controller.voidPosition = transform.position;
-        //}
-
-        //Debug.Log("Spawned " + (isBaby ? "Baby" : "Burrito") + " sphere");
-
     }
 
     void EndWave()
     {
+
+        //Destroy all remaining spheres 
         SphereController[] remainingSpheres = FindObjectsByType<SphereController>(FindObjectsSortMode.None);
         foreach (SphereController sphere in remainingSpheres)
         {
             Destroy(sphere.gameObject);
         }
 
-        StartNextWave();
+        isWavePaused = true;
+        Invoke("StartNextWave", wavePauseTime);
+
+        //StartNextWave();
     }
 
     public void StartNextWave()
     {
+        isWavePaused = false;
         currentWave++;
         spheresSpawnedThisWave = 0;
         currentWaveTimeRemaining = waveTimer;
+
+        // Unlock new materials every few waves
+        if (currentWave % newMaterialEveryXWaves == 0)
+            if (currentBabyMaterialCount < babyMaterials.Length)
+            {
+                currentBabyMaterialCount++;
+            }
+            if (currentBurritoMaterialCount < burritoMaterials.Length)
+        {
+            currentBurritoMaterialCount++;
+        }
+      
 
         // Make waves harder
         spawnInterval = Mathf.Max(0.5f, spawnInterval - 0.1f); // Spawn faster

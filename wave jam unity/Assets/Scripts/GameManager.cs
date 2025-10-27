@@ -4,6 +4,7 @@ using TMPro;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
+   
 
     [Header("UI")]
     public TextMeshProUGUI scoreText;
@@ -43,12 +44,17 @@ public class GameManager : MonoBehaviour
         score += correctSortPoints;
         UpdateUI();
 
+        if (score >= 300)
+        {
+            GameWin();
+        }
+
     }
 
     public void WrongSort(bool wasBaby)
     {
         score -= wrongSortPenalty;
-        lives--;
+        //lives--;  // Comment this out becuase I don't want a life to be lost if something is sorted wrong
 
         if (score < 0) score = 0;
 
@@ -123,8 +129,23 @@ public class GameManager : MonoBehaviour
     void GameOver()
     {
         Debug.Log("Game Over! Final Score: " + score);
-        Time.timeScale = 0;
+        //Time.timeScale = 0;
 
-        //what should game over UI look like??
+        if (GameOverManager.Instance != null)
+        {
+            int finalWave = spawner != null ? spawner.currentWave : 1;
+            GameOverManager.Instance.ShowGameOver(score, finalWave);
+        }
+    }
+
+    void GameWin()
+    {
+        Debug.Log("game win! 300 points! show win panel");
+
+        if (GameOverManager.Instance != null)
+        {
+            int finalWave = spawner != null ? spawner.currentWave : 1;
+            GameOverManager.Instance.ShowWin(score, finalWave);
+        }
     }
 }
