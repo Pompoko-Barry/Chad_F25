@@ -6,6 +6,7 @@ public class VoidSpawner : MonoBehaviour
     public GameObject spherePrefab;
     public Material[] babyMaterials;
     public Material[] burritoMaterials;
+    public Material[] porkPineMaterials;
 
 
     [Header("Material Progression")]
@@ -14,6 +15,7 @@ public class VoidSpawner : MonoBehaviour
 
     private int currentBabyMaterialCount = 2;
     private int currentBurritoMaterialCount = 2;
+    private int currentPorkPineMaterialCount = 2;
 
 
     [Header("Spawn Timing")]
@@ -22,8 +24,9 @@ public class VoidSpawner : MonoBehaviour
 
     [Header("Wave Settings")]
     public int currentWave = 1;
-    public float babySpawnChance = 0.5f; // 50% chance for baby1 spawn
-    public float waveTimer = 30f;  //wave duration in seconds
+    public float babySpawnChance = 0.45f; // Reduced to make room for pork-pine
+    public float porkPineSpawnChance = 0.1f;
+    public float waveTimer = 1f;  //wave duration in seconds
     public float wavePauseTime = 3f;  // To pause in between waves
 
     private float spawnTimer = 0f;
@@ -72,27 +75,36 @@ public class VoidSpawner : MonoBehaviour
     void SpawnSphere()
     {
         Vector3 spawnPos = transform.position + new Vector3(
-         Random.Range(-0.5f, 0.5f),
+         Random.Range(-2f, 0.5f), // These are the values that determine where the spheres will spawn within the void zone
          1f,
-         Random.Range(-0.5f, 0.5f)
+         Random.Range(-2f, 0.5f)
      );
 
         GameObject sphere = Instantiate(spherePrefab, spawnPos, Random.rotation);
-        bool isBaby = Random.value < babySpawnChance;
+
+        // Determine type with pork-pine option
+        float roll = Random.value;
+        bool isPorkPine = roll < porkPineSpawnChance;
+        bool isBaby = !isPorkPine && roll < (porkPineSpawnChance + babySpawnChance);
 
         Renderer sphereRenderer = sphere.GetComponent<Renderer>();
         SphereController controller = sphere.GetComponent<SphereController>();
 
         if (sphereRenderer != null)
         {
-            if (isBaby && babyMaterials.Length > 0)
+            if (isPorkPine && porkPineMaterials.Length > 0)
             {
-                // Only pick from unlocked materials
+                int maxIndex = Mathf.Min(currentPorkPineMaterialCount, porkPineMaterials.Length);
+                Material randomPorkPineMat = porkPineMaterials[Random.Range(0, maxIndex)];
+                sphereRenderer.material = randomPorkPineMat;
+            }
+            else if (isBaby && babyMaterials.Length > 0)
+            {
                 int maxIndex = Mathf.Min(currentBabyMaterialCount, babyMaterials.Length);
                 Material randomBabyMat = babyMaterials[Random.Range(0, maxIndex)];
                 sphereRenderer.material = randomBabyMat;
             }
-            else if (!isBaby && burritoMaterials.Length > 0)
+            else if (burritoMaterials.Length > 0)
             {
                 int maxIndex = Mathf.Min(currentBurritoMaterialCount, burritoMaterials.Length);
                 Material randomBurritoMat = burritoMaterials[Random.Range(0, maxIndex)];
@@ -103,14 +115,21 @@ public class VoidSpawner : MonoBehaviour
         if (controller != null)
         {
             controller.isBaby = isBaby;
+            controller.isPorkPine = isPorkPine;
             controller.voidPosition = transform.position;
         }
 
-        Debug.Log("Spawned " + (isBaby ? "Baby" : "Burrito"));
+        Debug.Log("Spawned " + (isPorkPine ? "PORK-PINE!" : (isBaby ? "Baby" : "Burrito")));
     }
 
     void EndWave()
     {
+
+        // Clean up elves
+        if (ElfSpawnerManager.Instance != null)
+        {
+            ElfSpawnerManager.Instance.OnWaveEnd();
+        }
 
         //Destroy all remaining spheres 
         SphereController[] remainingSpheres = FindObjectsByType<SphereController>(FindObjectsSortMode.None);
@@ -132,6 +151,12 @@ public class VoidSpawner : MonoBehaviour
         spheresSpawnedThisWave = 0;
         currentWaveTimeRemaining = waveTimer;
 
+        // Notify elf spawner about new wave
+        if (ElfSpawnerManager.Instance != null)
+        {
+            ElfSpawnerManager.Instance.OnWaveStart(currentWave);
+        }
+
         // Unlock new materials every few waves
         if (currentWave % newMaterialEveryXWaves == 0)
             if (currentBabyMaterialCount < babyMaterials.Length)
@@ -145,7 +170,7 @@ public class VoidSpawner : MonoBehaviour
       
 
         // Make waves harder
-        spawnInterval = Mathf.Max(0.5f, spawnInterval - 0.1f); // Spawn faster
+        spawnInterval = Mathf.Max(0.7f, spawnInterval - 0.1f); // Spawn faster
         spheresPerWave += 5; // More spheres per wave
 
         Debug.Log("Wave " + currentWave + " started!");

@@ -1984,7 +1984,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Prize is $500 plus one year of free burrito #burrrito
+  m_text: 'Prize is $375 plus one year of free burrito #burrrito
 
     *stomach rumbles*'
   m_isRightToLeft: 0

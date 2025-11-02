@@ -23,6 +23,9 @@ public class GameManager : MonoBehaviour
 
     private VoidSpawner spawner;
 
+
+    public TextMeshProUGUI edgePenaltyText; 
+
     void Awake()
     {
         if (Instance == null)
@@ -44,11 +47,22 @@ public class GameManager : MonoBehaviour
         score += correctSortPoints;
         UpdateUI();
 
-        if (score >= 300)
+        if (score >= 375)
         {
             GameWin();
         }
 
+    }
+
+    public void TouchedPorkPine()
+    {
+        lives--;
+        UpdateUI();
+
+        if (lives <= 0)
+        {
+            GameOver();
+        }
     }
 
     public void WrongSort(bool wasBaby)
@@ -68,24 +82,46 @@ public class GameManager : MonoBehaviour
 
     public void SphereReachedEdge(bool wasBaby)
     {
-        // Penalty for letting sphere reach edge
-        score -= edgePenalty;
-
-        // Lose a life if ANNNY ANY sphere reaches edge
-        lives--;
-        //if (wasBaby)
-        //{
-        //    lives--; // Extra penalty for letting baby escape?? How should players lose? Penalites??
-        //}
+        // Penalty for letting sphere reach edge - just points now, no life loss
+        score -= 30; // Changed from edgePenalty
 
         if (score < 0) score = 0;
 
         UpdateUI();
 
-        if (lives <= 0)
+        // No more game over from edge reaches
+    }
+
+    public void ShowEdgePenalty()
+    {
+        if (edgePenaltyText != null)
         {
-            GameOver();
+            StartCoroutine(ShowEdgePenaltyCoroutine());
         }
+    }
+
+    System.Collections.IEnumerator ShowEdgePenaltyCoroutine()
+    {
+        edgePenaltyText.gameObject.SetActive(true);
+        edgePenaltyText.text = "Baby or Burrito escaped! -30 points :(";  // Here you can change what the popup will be (cannot figure out why the in world popup isn't showing)
+        edgePenaltyText.color = new Color(1, 0, 0, 1); // Red, full opacity
+
+        // Wait a moment
+        yield return new WaitForSeconds(0.9f);
+
+        // Fade out
+        float elapsed = 0f;
+        float duration = 1.3f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float alpha = 1f - (elapsed / duration);
+            edgePenaltyText.color = new Color(1, 0, 0, alpha);
+            yield return null;
+        }
+
+        edgePenaltyText.gameObject.SetActive(false);
     }
 
     public void UpdateWaveDisplay(int wave)
@@ -105,6 +141,7 @@ public class GameManager : MonoBehaviour
         if (waveText != null && spawner != null)
             waveText.text = "Wave: " + spawner.currentWave;
     }
+
 
     public void UpdateWaveTimer(float timeRemaining)
     {
@@ -140,7 +177,7 @@ public class GameManager : MonoBehaviour
 
     void GameWin()
     {
-        Debug.Log("game win! 300 points! show win panel");
+        Debug.Log("game win! 375 points! show win panel");
 
         if (GameOverManager.Instance != null)
         {
